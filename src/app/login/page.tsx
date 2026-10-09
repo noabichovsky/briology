@@ -92,7 +92,7 @@ function LoginForm() {
             Sign in to Briology
           </h1>
           <p style={{ margin: 0, color: "var(--muted)", fontSize: 15 }}>
-            We'll email you a secure link — no password needed.
+            We'll email you a secure link.
           </p>
         </div>
 
