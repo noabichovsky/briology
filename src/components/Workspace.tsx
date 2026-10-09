@@ -86,6 +86,7 @@ export default function Workspace({
 
   const colsRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [uploadMsg, setUploadMsg] = useState<string | null>(null);
 
   const currentClient = clients.find((c) => c.id === clientId) ?? null;
   const sectionDef = SECTIONS.find((s) => s.key === section)!;
@@ -235,18 +236,39 @@ export default function Workspace({
     : null;
 
   async function doUpload(files: FileList | null) {
-    if (!files || files.length === 0 || !sectionId) return;
-    const form = new FormData();
-    form.set("section_id", sectionId);
-    if (deepestParentId) form.set("parent_id", deepestParentId);
-    for (const f of Array.from(files)) form.append("files", f);
-    const res = await fetch(withBase("/api/nodes"), {
-      method: "POST",
-      body: form,
-    });
-    if (res.ok) {
+    if (!files || files.length === 0) return;
+    if (!sectionId) {
+      setUploadMsg("Still loading this section — try again in a moment.");
+      return;
+    }
+    setUploadMsg(
+      `Uploading ${files.length} file${files.length === 1 ? "" : "s"}…`
+    );
+    try {
+      const form = new FormData();
+      form.set("section_id", sectionId);
+      if (deepestParentId) form.set("parent_id", deepestParentId);
+      for (const f of Array.from(files)) form.append("files", f);
+      const res = await fetch(withBase("/api/nodes"), {
+        method: "POST",
+        body: form,
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        setUploadMsg(
+          `Upload failed (${res.status}): ${data?.error ?? "unknown error"}`
+        );
+        return;
+      }
+      setUploadMsg(null);
       setSel(null);
       await loadTree();
+    } catch (err) {
+      setUploadMsg(
+        "Upload failed: " + (err instanceof Error ? err.message : String(err))
+      );
     }
   }
 
@@ -824,6 +846,20 @@ export default function Workspace({
                     </button>
                   </div>
                 </div>
+
+                {uploadMsg && (
+                  <p
+                    style={{
+                      margin: "0 0 12px",
+                      fontSize: 13.5,
+                      color: uploadMsg.toLowerCase().includes("fail")
+                        ? "var(--risk)"
+                        : "var(--muted)",
+                    }}
+                  >
+                    {uploadMsg}
+                  </p>
+                )}
 
                 {q ? (
                   /* Search results replace the columns while searching */
