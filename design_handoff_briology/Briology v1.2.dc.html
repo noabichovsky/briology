@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500&amp;family=Geist+Mono&amp;display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fafaf8;--surface:#fff;--panel:#f1f1ee;--ink:#111;--muted:#777;--line:#e4e4e0;--hover:rgba(0,0,0,.035);--navbg:rgba(250,250,248,.82);--pill:rgba(0,0,0,.25);--input:#f4f4f4;--input-line:#ebebeb;--vision:#EFD24A;--roadmap:#FFB500;--field:#FB8ED7;--knowledge:#2d9e75;--risk:#E5484D}
+:root[data-theme="dark"]{--bg:#111;--surface:#1a1a19;--panel:#242422;--ink:#fafaf8;--muted:#9a9a94;--line:rgba(255,255,255,.1);--hover:rgba(255,255,255,.04);--navbg:rgba(17,17,17,.82);--pill:rgba(255,255,255,.3);--input:#242422;--input-line:rgba(255,255,255,.08);--risk:#F0696B}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111;--surface:#1a1a19;--panel:#242422;--ink:#fafaf8;--muted:#9a9a94;--line:rgba(255,255,255,.1);--hover:rgba(255,255,255,.04);--navbg:rgba(17,17,17,.82);--pill:rgba(255,255,255,.3);--input:#242422;--input-line:rgba(255,255,255,.08);--risk:#F0696B}}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Geist',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+a:hover{opacity:.7}
+button{font:inherit;color:inherit}
+input::placeholder{color:var(--muted)}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+@keyframes look{0%,100%{transform:translateX(-2px)}50%{transform:translateX(2px)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div data-screen-label="Briology" style="display:flex;height:100vh;overflow:hidden;background:var(--bg);color:var(--ink)">
+<div style="flex:1 1 0;min-width:0;height:100%;overflow-y:auto">
+
+  <header style="position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px;padding:22px clamp(20px,3vw,40px);background:var(--navbg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)">
+      <div style="flex:1 1 0;min-width:max-content;display:flex;align-items:center;gap:16px">
+        <sc-if value="{{ notAdmin }}" hint-placeholder-val="{{ false }}">
+          <span style="font-size:20px;font-weight:500;letter-spacing:-0.03em">{{ client }}</span>
+        </sc-if>
+        <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ true }}">
+          <div onMouseEnter="{{ menuOpen }}" onMouseLeave="{{ menuClose }}" style="position:relative">
+            <button type="button" aria-haspopup="listbox" aria-expanded="{{ menuExpanded }}" onClick="{{ menuOpen }}" style="display:flex;align-items:center;padding:6px 12px;margin-left:-12px;border:0;border-radius:999px;background:{{ clientBg }};cursor:pointer;font-size:20px;font-weight:500;letter-spacing:-0.03em;transition:background .15s" style-hover="background:var(--hover)">{{ client }}</button>
+            <sc-if value="{{ menu }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;top:100%;left:-12px;padding-top:8px;z-index:30">
+                <div role="listbox" aria-label="Switch customer" style="min-width:240px;padding:8px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:2px">
+                  <sc-for list="{{ clients }}" as="c" hint-placeholder-count="3">
+                    <div style="display:flex;align-items:center;gap:2px;border-radius:10px;background:{{ c.bg }}" style-hover="box-shadow:inset 0 0 0 100px var(--hover)">
+                      <button type="button" role="option" aria-selected="{{ c.selected }}" onClick="{{ c.onClick }}" style="flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:0;background:transparent;cursor:pointer;font-size:15px;text-align:left">{{ c.name }}<sc-if value="{{ c.isCurrent }}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 7.5l2.5 2.5L11 4.5"></path></svg></sc-if></button>
+                      <sc-if value="{{ canDeleteClient }}" hint-placeholder-val="{{ true }}">
+                        <button type="button" onClick="{{ c.onDelete }}" aria-label="Delete {{ c.name }}" title="Delete client" style="flex:none;width:32px;height:32px;margin-right:4px;border:0;border-radius:8px;background:transparent;cursor:pointer;color:var(--muted);font-size:13px;display:flex;align-items:center;justify-content:center" style-hover="color:var(--risk)">✕</button>
+                      </sc-if>
+                    </div>
+                  </sc-for>
+                  <div style="height:1px;margin:6px 4px;background:var(--line)"></div>
+                  <sc-if value="{{ addingClient }}" hint-placeholder-val="{{ false }}">
+                    <input aria-label="New client name" placeholder="Client name" autoFocus="{{ true }}" onKeyDown="{{ onClientKey }}" onBlur="{{ onClientBlur }}" style="margin:2px;padding:9px 10px;border:1px solid var(--ink);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:15px;outline:none">
+                  </sc-if>
+                  <sc-if value="{{ notAddingClient }}" hint-placeholder-val="{{ true }}">
+                    <button type="button" onClick="{{ startAddClient }}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:0;border-radius:10px;background:transparent;cursor:pointer;font-size:15px;text-align:left;color:var(--ink)" style-hover="background:var(--hover)"><span style="font-size:17px;line-height:1;font-weight:300">+</span>New client</button>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+      </div>
+      <nav aria-label="Sections" style="flex:0 1 auto;display:flex;flex-wrap:wrap;justify-content:center;gap:4px;max-width:100%">
+        <sc-for list="{{ sections }}" as="s" hint-placeholder-count="4">
+          <button type="button" onClick="{{ s.onClick }}" aria-current="{{ s.current }}" style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-radius:999px;border:1px solid {{ s.border }};background:transparent;cursor:pointer;white-space:nowrap;font-size:16px" style-hover="background:var(--hover)"><i style="width:8px;height:8px;border-radius:50%;background:{{ s.color }};flex:none"></i>{{ s.name }}</button>
+        </sc-for>
+      </nav>
+    <div style="flex:1 1 0;min-width:max-content;display:flex;gap:10px;align-items:center;justify-content:flex-end">
+  <button type="button" onClick="{{ toggleTheme }}" style="border:1px solid var(--pill);border-radius:999px;padding:10px 20px;background:transparent;cursor:pointer;font-size:14px;white-space:nowrap" style-hover="background:var(--hover)">Switch theme</button>
+      <sc-if value="{{ closed }}" hint-placeholder-val="{{ true }}">
+        <button type="button" onClick="{{ openPanel }}" style="display:flex;align-items:center;gap:8px;border:1px solid var(--ink);border-radius:999px;padding:10px 20px;background:var(--ink);color:var(--bg);cursor:pointer;font-size:14px;white-space:nowrap" style-hover="opacity:.8"><i style="width:7px;height:7px;border-radius:50%;background:{{ secColor }}"></i>Agent</button>
+      </sc-if>
+    </div>
+  </header>
+
+  <div style="padding:clamp(28px,5vw,64px) clamp(20px,3vw,40px) 72px">
+
+    <main style="min-width:0">
+      <h1 style="margin:0;font-size:clamp(48px,7vw,104px);line-height:.95;font-weight:300;letter-spacing:-0.05em">{{ secName }}</h1>
+      <sc-if value="{{ hasSrc }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:10px;margin-top:20px;font-family:'Geist Mono',monospace;font-size:12.5px;color:var(--muted)"><i style="width:7px;height:7px;border-radius:50%;background:var(--knowledge);flex:none"></i><span>{{ secSrc }}</span></div></sc-if>
+
+      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:clamp(32px,5vw,56px) 0 16px">
+        <label style="flex:1 1 260px;max-width:420px;display:flex;align-items:center;gap:10px;height:42px;padding:0 14px;background:var(--input);border:1px solid var(--input-line);border-radius:12px;color:var(--muted)">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" style="flex:none"><circle cx="7" cy="7" r="5"></circle><path d="M11 11l3.5 3.5"></path></svg>
+          <input type="search" aria-label="Search files" placeholder="Search {{ secLower }}" value="{{ query }}" onChange="{{ onQuery }}" style="flex:1;min-width:0;border:0;background:transparent;outline:none;font:inherit;font-size:15px;color:var(--ink)">
+        </label>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px">
+          <div role="group" aria-label="Sort by" style="display:flex;align-items:center;gap:2px;padding:3px 3px 3px 12px;border:1px solid var(--line);border-radius:999px">
+            <span style="font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-right:6px">Sort</span>
+            <sc-for list="{{ sorts }}" as="so" hint-placeholder-count="2">
+              <button type="button" aria-pressed="{{ so.pressed }}" onClick="{{ so.onClick }}" style="padding:6px 12px;border:0;border-radius:999px;background:{{ so.bg }};color:{{ so.fg }};cursor:pointer;font-size:13px">{{ so.label }}</button>
+            </sc-for>
+          </div>
+          <input ref="{{ fileRef }}" type="file" multiple="{{ true }}" onChange="{{ onUpload }}" style="display:none">
+          <button type="button" onClick="{{ pickFiles }}" style="display:flex;align-items:center;gap:8px;height:38px;padding:0 16px;border:1px solid var(--ink);border-radius:999px;background:var(--ink);color:var(--bg);cursor:pointer;font-size:14px;white-space:nowrap" style-hover="opacity:.85"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true" style="flex:none"><path d="M9 12V3M5 6.5L9 3l4 3.5"></path><path d="M3 12v3h12v-3"></path></svg>Upload</button>
+          <button type="button" onClick="{{ addFolder }}" style="display:flex;align-items:center;gap:8px;height:38px;padding:0 16px;border:1px solid var(--pill);border-radius:999px;background:transparent;cursor:pointer;font-size:14px;white-space:nowrap" style-hover="background:var(--hover)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true" style="flex:none"><path d="M2 5.5a1.5 1.5 0 0 1 1.5-1.5H7l1.5 1.8h6A1.5 1.5 0 0 1 16 7.3v6.2a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 2 13.5z"></path></svg>New folder</button>
+          <button type="button" onClick="{{ deleteSel }}" disabled="{{ noTarget }}" title="{{ deleteTitle }}" style="display:flex;align-items:center;gap:8px;height:38px;padding:0 16px;border:1px solid var(--pill);border-radius:999px;background:transparent;cursor:pointer;font-size:14px;white-space:nowrap;opacity:{{ deleteOpacity }}" style-hover="background:var(--hover)"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true" style="flex:none"><path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4"></path></svg>Delete</button>
+        </div>
+      </div>
+
+      <sc-if value="{{ isSearching }}" hint-placeholder-val="{{ false }}">
+        <div style="border-top:1px solid var(--line)">
+          <sc-for list="{{ results }}" as="r" hint-placeholder-count="3">
+            <button type="button" onClick="{{ r.onClick }}" style="display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;padding:14px 12px;border:0;border-bottom:1px solid var(--line);background:transparent;text-align:left;cursor:pointer;color:var(--ink)" style-hover="background:var(--hover)">
+              <sc-if value="{{ r.isFolder }}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true" style="flex:none"><path d="M2 5.5a1.5 1.5 0 0 1 1.5-1.5H7l1.5 1.8h6A1.5 1.5 0 0 1 16 7.3v6.2a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 2 13.5z"></path></svg></sc-if><sc-if value="{{ r.isFile }}" hint-placeholder-val="{{ true }}"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true" style="flex:none"><path d="M4.5 2h6l3 3v11h-9z"></path><path d="M10.5 2v3h3"></path></svg></sc-if>
+              <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                <span style="font-size:16px;letter-spacing:-0.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.title }}</span>
+                <span style="font-family:'Geist Mono',monospace;font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.where }}</span>
+              </span>
+              <sc-if value="{{ r.isNew }}" hint-placeholder-val="{{ false }}"><i title="New" style="width:7px;height:7px;border-radius:50%;background:var(--risk)"></i></sc-if>
+            </button>
+          </sc-for>
+          <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+            <p style="margin:0;padding:28px 12px;color:var(--muted);font-size:15px">No matches for “{{ query }}”</p>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ notSearching }}" hint-placeholder-val="{{ true }}">
+        <div ref="{{ colsRef }}" style="display:flex;height:clamp(360px,calc(100vh - 340px),760px);border-top:1px solid var(--line);border-bottom:1px solid var(--line);overflow-x:auto">
+          <sc-for list="{{ columns }}" as="col" hint-placeholder-count="2">
+            <div style="flex:0 0 280px;border-right:1px solid var(--line);overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:1px">
+              <sc-for list="{{ col.items }}" as="it" hint-placeholder-count="4">
+                <sc-if value="{{ it.editing }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:grid;grid-template-columns:18px minmax(0,1fr);gap:10px;align-items:center;padding:4px 6px 4px 10px;border-radius:8px;background:var(--panel)">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true" style="flex:none"><path d="M2 5.5a1.5 1.5 0 0 1 1.5-1.5H7l1.5 1.8h6A1.5 1.5 0 0 1 16 7.3v6.2a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 2 13.5z"></path></svg>
+                    <input aria-label="Folder name" autoFocus="{{ true }}" defaultValue="Untitled folder" onFocus="{{ selectAll }}" onKeyDown="{{ it.onKey }}" onBlur="{{ it.onBlur }}" style="min-width:0;padding:5px 8px;border:1px solid var(--ink);border-radius:6px;background:var(--surface);color:var(--ink);font:inherit;font-size:15px;outline:none">
+                  </div>
+                </sc-if>
+                <sc-if value="{{ it.notEditing }}" hint-placeholder-val="{{ true }}">
+                  <button type="button" onClick="{{ it.onClick }}" aria-pressed="{{ it.pressed }}" title="{{ it.title }}" style="display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;padding:{{ rowPad }};border:0;border-radius:8px;background:{{ it.bg }};color:{{ it.fg }};text-align:left;cursor:pointer;font-size:15px" style-hover="box-shadow:inset 0 0 0 100px var(--hover)">
+                    <sc-if value="{{ it.isFolder }}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true" style="flex:none"><path d="M2 5.5a1.5 1.5 0 0 1 1.5-1.5H7l1.5 1.8h6A1.5 1.5 0 0 1 16 7.3v6.2a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 2 13.5z"></path></svg></sc-if><sc-if value="{{ it.isFile }}" hint-placeholder-val="{{ true }}"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true" style="flex:none"><path d="M4.5 2h6l3 3v11h-9z"></path><path d="M10.5 2v3h3"></path></svg></sc-if>
+                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-0.01em">{{ it.title }}</span>
+                    <span style="display:flex;align-items:center;gap:8px;opacity:.7">
+                      <sc-if value="{{ it.isNew }}" hint-placeholder-val="{{ false }}"><i title="New" style="width:7px;height:7px;border-radius:50%;background:var(--risk)"></i></sc-if>
+                      <sc-if value="{{ it.isFolder }}" hint-placeholder-val="{{ false }}"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M3.5 2l3 3-3 3"></path></svg></sc-if>
+                    </span>
+                  </button>
+                </sc-if>
+              </sc-for>
+              <sc-if value="{{ col.empty }}" hint-placeholder-val="{{ false }}">
+                <p style="margin:0;padding:20px 10px;color:var(--muted);font-size:14px;line-height:1.45;text-wrap:pretty">{{ col.emptyText }}</p>
+              </sc-if>
+            </div>
+          </sc-for>
+          <sc-if value="{{ hasPreview }}" hint-placeholder-val="{{ false }}">
+            <div style="flex:1 0 300px;padding:28px;display:flex;flex-direction:column;align-items:flex-start;gap:12px">
+              <div style="display:flex;align-items:center;gap:10px;font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)"><span>{{ pvTag }}</span><sc-if value="{{ pvNew }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:6px;color:var(--risk)"><i style="width:7px;height:7px;border-radius:50%;background:var(--risk)"></i>New</span></sc-if></div>
+              <h2 style="margin:0;font-size:clamp(22px,2.2vw,30px);line-height:1.15;font-weight:400;letter-spacing:-0.035em;text-wrap:pretty">{{ pvTitle }}</h2>
+              <p style="margin:0;font-size:14.5px;color:var(--muted)">{{ pvMeta }}</p>
+              <sc-if value="{{ closed }}" hint-placeholder-val="{{ true }}">
+                <button type="button" onClick="{{ openPanel }}" style="margin-top:8px;border:1px solid var(--pill);border-radius:999px;padding:9px 16px;background:transparent;cursor:pointer;font-size:13.5px" style-hover="background:var(--hover)">Ask the agent about this</button>
+              </sc-if>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+    </main>
+  </div>
+</div>
+
+<sc-if value="{{ isOpen }}" hint-placeholder-val="{{ false }}">
+<aside aria-label="Agent" style="position:relative;flex:none;width:{{ panelW }};max-width:85vw;height:100%;background:var(--surface);border-left:1px solid var(--line)">
+  <div role="separator" aria-orientation="vertical" aria-label="Resize agent panel" title="Drag to resize" onPointerDown="{{ startResize }}" style="position:absolute;top:0;bottom:0;left:-4px;width:9px;cursor:col-resize;z-index:2;display:flex;justify-content:center" style-hover="background:var(--hover)"></div>
+  <div ref="{{ panelRef }}" style="height:100%;overflow-y:auto;padding:clamp(22px,2.4vw,32px);display:flex;flex-direction:column;gap:24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:14px">
+        <h2 style="margin:0;font-size:26px;line-height:1.1;font-weight:400;letter-spacing:-0.035em">{{ modeTitle }}</h2>
+        <div style="display:flex;align-items:center;gap:8px">
+        <sc-if value="{{ hasThread }}" hint-placeholder-val="{{ false }}">
+          <button type="button" onClick="{{ newChat }}" style="border:1px solid var(--line);border-radius:999px;padding:9px 14px;background:transparent;cursor:pointer;font-size:13px;white-space:nowrap" style-hover="background:var(--hover)">New chat</button>
+        </sc-if>
+        <button type="button" onClick="{{ closePanel }}" aria-label="Close agent panel" style="flex:none;width:40px;height:40px;border:1px solid var(--line);border-radius:999px;background:transparent;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center" style-hover="background:var(--hover)">✕</button>
+        </div>
+      </div>
+
+      <sc-if value="{{ hasFocus }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--panel);border-radius:10px;padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:8px;font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)"><i style="width:7px;height:7px;border-radius:50%;background:{{ secColor }}"></i>Looking at</div>
+          <h3 style="margin:0;font-size:18px;line-height:1.25;font-weight:500;letter-spacing:-0.02em">{{ focusTitle }}</h3>
+          <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14.5px;line-height:1.45">
+            <sc-for list="{{ focusNotes }}" as="n" hint-placeholder-count="2"><li>{{ n }}</li></sc-for>
+          </ul>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ noThread }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <h4 style="margin:0;font-family:'Geist Mono',monospace;font-size:11px;font-weight:400;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">{{ obsHeading }}</h4>
+        <sc-if value="{{ hasThemes }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <sc-for list="{{ themes }}" as="th" hint-placeholder-count="4">
+              <div style="display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:14.5px">
+                <span>{{ th.name }}</span>
+                <span style="font-family:'Geist Mono',monospace;font-size:12px;color:var(--muted)">{{ th.n }}</span>
+                <span style="grid-column:1/-1;height:4px;border-radius:2px;background:var(--line);overflow:hidden"><i style="display:block;height:100%;width:{{ th.w }};background:var(--field)"></i></span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ noObs }}" hint-placeholder-val="{{ true }}">
+          <p style="margin:0;font-size:14.5px;line-height:1.5;color:var(--muted);text-wrap:pretty">Nothing yet. Upload content to {{ secLower }}, then ask a question below.</p>
+        </sc-if>
+        <sc-for list="{{ obs }}" as="o" hint-placeholder-count="0">
+          <div style="padding-top:16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:4px">
+            <b style="font-size:15.5px;font-weight:500;letter-spacing:-0.01em">{{ o.b }}</b>
+            <p style="margin:0;font-size:14.5px;line-height:1.5"><sc-if value="{{ o.s }}" hint-placeholder-val="{{ false }}"><span style="font-weight:500;color:{{ o.sevColor }}">{{ o.s }}</span> · </sc-if>{{ o.p }}</p>
+            <sc-if value="{{ o.lk }}" hint-placeholder-val="{{ false }}"><span style="margin-top:2px;font-family:'Geist Mono',monospace;font-size:11.5px;color:var(--muted)">{{ o.lk }}</span></sc-if>
+          </div>
+        </sc-for>
+      </div>
+
+      </sc-if>
+
+      <sc-if value="{{ hasThread }}" hint-placeholder-val="{{ false }}">
+        <div aria-live="polite" style="display:flex;flex-direction:column;gap:18px">
+          <sc-for list="{{ thread }}" as="m" hint-placeholder-count="2">
+            <sc-if value="{{ m.isUser }}" hint-placeholder-val="{{ false }}">
+              <div style="align-self:flex-end;max-width:85%;padding:10px 14px;border-radius:14px 14px 4px 14px;background:var(--panel);font-size:15px;line-height:1.45;white-space:pre-wrap">{{ m.text }}</div>
+            </sc-if>
+            <sc-if value="{{ m.isAgent }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">{{ m.who }}</span>
+                <div style="font-size:15px;line-height:1.55;white-space:pre-wrap;text-wrap:pretty;color:{{ m.color }}">{{ m.text }}</div>
+              </div>
+            </sc-if>
+          </sc-for>
+          <sc-if value="{{ thinking }}" hint-placeholder-val="{{ false }}">
+            <span style="font-family:'Geist Mono',monospace;font-size:12px;color:var(--muted)">Thinking…</span>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <form onSubmit="{{ onAsk }}" style="margin-top:auto;position:sticky;bottom:0;display:flex;flex-direction:column;gap:10px;padding:10px;background:var(--input);border:1px solid var(--input-line);border-radius:16px">
+        <input aria-label="Message the agent" placeholder="{{ askPlaceholder }}" value="{{ draft }}" onChange="{{ onDraft }}" disabled="{{ thinking }}" style="width:100%;height:44px;padding:0 8px;font:inherit;font-size:15px;color:var(--ink);background:transparent;border:0;outline:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div role="radiogroup" aria-label="What should the agent do" style="display:flex;flex-wrap:wrap;gap:4px">
+            <sc-for list="{{ modes }}" as="m" hint-placeholder-count="3">
+              <button type="button" role="radio" aria-checked="{{ m.checked }}" onClick="{{ m.onClick }}" style="padding:7px 12px;border-radius:999px;border:1px solid {{ m.border }};background:{{ m.bg }};color:{{ m.fg }};cursor:pointer;font-size:13px;white-space:nowrap" style-hover="border-color:var(--pill)">{{ m.label }}</button>
+            </sc-for>
+          </div>
+          <button type="submit" aria-label="Send" style="flex:none;width:38px;height:38px;padding:0;border:0;border-radius:999px;background:var(--ink);color:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="opacity:.8"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5"></path></svg></button>
+        </div>
+      </form>
+  </div>
+</aside>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;role&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;admin&quot;,&quot;client&quot;],&quot;default&quot;:&quot;admin&quot;,&quot;tsType&quot;:&quot;'admin'|'client'&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;auto&quot;,&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;auto&quot;,&quot;tsType&quot;:&quot;'auto'|'light'|'dark'&quot;},&quot;density&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;comfortable&quot;,&quot;compact&quot;],&quot;default&quot;:&quot;comfortable&quot;,&quot;tsType&quot;:&quot;'comfortable'|'compact'&quot;}}">
+const S = {
+  vision:{ name:'Vision', color:'var(--vision)', src:'', tree:[], agents:[{ name:'Vision agent', obs:[], files:{} }] },
+  roadmap:{ name:'Roadmap', color:'var(--roadmap)', src:'', tree:[], agents:[{ name:'Roadmap agent', obs:[], files:{} }] },
+  field:{ name:'Field', color:'var(--field)', src:'', tree:[], agents:[{ name:'Field agent', obs:[], files:{} }] },
+  knowledge:{ name:'Knowledge', color:'var(--knowledge)', src:'', tree:[], agents:[{ name:'Knowledge agent', obs:[], files:{} }] }
+};
+const DESIGN = { name:'Design opinion agent', short:'Design opinion', obs:[], files:{} };
+const EXT = { pdf:'doc', doc:'doc', docx:'doc', txt:'doc', md:'doc', rtf:'doc', pages:'doc', key:'demo', ppt:'demo', pptx:'demo',
+  xls:'sheet', xlsx:'sheet', csv:'sheet', numbers:'sheet', png:'design', jpg:'design', jpeg:'design', gif:'design', webp:'design', svg:'design', fig:'design',
+  mp3:'rec', m4a:'rec', wav:'rec', mp4:'demo', mov:'demo', eml:'mail', msg:'mail', html:'demo', json:'doc' };
+const TEXTUAL = /\.(txt|md|csv|json|html?|eml|rtf|xml|ya?ml)$/i;
+let FID = 0;
+const prepTrees = () => {
+  const clone = list => list.map(n => n.items ? { ...n, id:'d' + (++FID), items:clone(n.items) } : { ...n });
+  return Object.fromEntries(Object.entries(S).map(([k, v]) => [k, clone(v.tree)]));
+};
+const TAG = {doc:'Doc', sheet:'Sheet', rec:'Rec', demo:'Demo', design:'Figma', task:'Task', msg:'Slack', mail:'Email', ticket:'Ticket'};
+
+class Component extends DCLogic {
+  colsRef = React.createRef();
+  fileRef = React.createRef();
+  panelRef = React.createRef();
+  state = { sec:'vision', trail:[], sel:null, query:'', sort:'name', editing:null, trees:prepTrees(), mode:'ask', open:false, theme:null, client:'Phytech', clientList:['Phytech'], store:{}, addingClient:false, menu:false, chats:{}, draft:'', thinking:false };
+
+  componentDidMount(){ this.applyTheme(); window.addEventListener('keydown', this.onKey); }
+  componentDidUpdate(pp, ps){
+    this.applyTheme();
+    const el = this.colsRef.current;
+    if (el && (ps.trail !== this.state.trail || ps.sel !== this.state.sel)) el.scrollLeft = el.scrollWidth;
+    const p = this.panelRef.current;
+    if (p && (ps.chats !== this.state.chats || ps.thinking !== this.state.thinking)) p.scrollTop = p.scrollHeight;
+  }
+  applyTheme(){
+    const t = this.state.theme ?? this.props.theme ?? 'auto';
+    const r = document.documentElement;
+    if (t === 'auto') delete r.dataset.theme; else r.dataset.theme = t;
+  }
+  findFile(sec, id){
+    const walk = list => { for (const n of list){ if (n.id === id) return n; if (n.items){ const r = walk(n.items); if (r) return r; } } };
+    return id ? walk(this.state.trees[sec]) : null;
+  }
+  sorted(list){
+    const name = n => (n.folder || n.t).replace(/^["“#]+/, '').toLowerCase();
+    const hasNew = n => n.folder ? n.items.some(hasNew) : !!n.n;
+    const arr = list.map((n, i) => ({ n, i }));
+    arr.sort((a, b) => (!!b.n.folder - !!a.n.folder)
+      || (this.state.sort === 'new' ? (hasNew(b.n) - hasNew(a.n)) || (a.i - b.i) : name(a.n).localeCompare(name(b.n))));
+    return arr.map(x => x.n);
+  }
+  context(){
+    const { sec, sel, trees } = this.state;
+    const outline = (list, d = 0) => list.map(n => n.folder
+      ? '  '.repeat(d) + '- [folder] ' + n.folder + '\n' + outline(n.items, d + 1)
+      : '  '.repeat(d) + '- [' + (TAG[n.type] || n.type) + '] ' + n.t + ' (' + n.m + ')' + (n.n ? ' [new]' : '') + '\n').join('');
+    const notes = ag => {
+      const titles = {}; const walk = l => l.forEach(n => { if (n.items) walk(n.items); else titles[n.id] = n.t; });
+      Object.values(trees).forEach(walk);
+      return ag.obs.map(o => '* ' + o.b + ': ' + o.p + (o.lk ? ' (' + o.lk + ')' : '')).join('\n') + '\n'
+        + Object.entries(ag.files).map(([id, l]) => '  ' + (titles[id] || id) + ': ' + l.join(' ')).join('\n');
+    };
+    const all = Object.entries(S).map(([k, x]) =>
+      '## ' + x.name + (k === sec ? ' (current section)' : '') + '\nSource: ' + x.src + '\nFiles:\n' + outline(trees[k])
+      + x.agents.map(ag => '\nNotes from ' + ag.name + ':\n' + notes(ag)).join('\n')
+      + (x.agents[0].themes ? '\nField themes: ' + x.agents[0].themes.map(([t, n]) => t + ' ' + n).join(', ') : '')).join('\n\n');
+    const texts = [];
+    const walkT = (l, sname) => l.forEach(n => { if (n.items) walkT(n.items, sname); else if (n.text) texts.push('### ' + n.t + ' (' + sname + ')\n' + n.text.slice(0, 20000)); });
+    Object.entries(trees).forEach(([k, l]) => walkT(l, S[k].name));
+    const file = this.findFile(sec, sel);
+    return all + (texts.length ? '\n\n# File contents\n' + texts.join('\n\n') : '\n\n(No file contents have been extracted; only names are known.)') + (file ? '\n\nThe user currently has this file selected: ' + file.t + ' (' + file.m + ')' : '');
+  }
+  async ask(){
+    const { sec, mode, draft, thinking } = this.state;
+    const text = draft.trim();
+    if (!text || thinking) return;
+    const key = sec + ':' + mode;
+    const prev = this.state.chats[key] || [];
+    const msgs = [...prev, { role:'user', text }];
+    this.setState(st => ({ chats:{ ...st.chats, [key]:msgs }, draft:'', thinking:true }));
+    const base = 'You are the Briology agent for Brio, a product design studio. Briology is the workspace where Brio and its client ' + this.state.client + ' keep the product\'s vision, roadmap, field feedback and knowledge for the product Daisy. Answer using only the workspace content below; if something is not in it, say so. Reference files by name. Write plain text, no markdown, no headings. Be concise: a few short sentences or a short list using "- ".';
+    const role = mode === 'design'
+      ? ' You are acting as a senior product designer giving a design opinion. Judge against the vision pillars, field feedback and design principles in the workspace. Say what works, what does not, and what to try next, specifically.'
+      : ' You answer questions about the content, connect related items across sections, and point out gaps or conflicts.';
+    try {
+      const reply = await window.claude.complete({
+        model:'claude-sonnet-4-5', max_tokens:1024,
+        system: base + role + '\n\n# Workspace content\n' + this.context(),
+        messages: msgs.map(m => ({ role:m.role, content:m.text }))
+      });
+      this.setState(st => ({ chats:{ ...st.chats, [key]:[...msgs, { role:'assistant', text:reply.trim() }] }, thinking:false }));
+    } catch (err) {
+      this.setState(st => ({ chats:{ ...st.chats, [key]:[...msgs, { role:'assistant', text:'Something went wrong: ' + (err && err.message || err), error:true }] }, thinking:false }));
+    }
+  }
+  deepestList(){
+    const { sec, trail, trees } = this.state;
+    let list = trees[sec];
+    for (const id of trail){ const d = list.find(n => n.id === id); if (!d) break; list = d.items; }
+    return list;
+  }
+  async upload(e){
+    const files = [...(e.target.files || [])];
+    e.target.value = '';
+    if (!files.length) return;
+    const list = this.deepestList();
+    const when = new Date().toLocaleDateString(undefined, { day:'numeric', month:'short' });
+    for (const file of files){
+      const ext = (file.name.split('.').pop() || '').toLowerCase();
+      const node = { id:'up' + Date.now() + Math.random().toString(36).slice(2, 6), t:file.name, type:EXT[ext] || 'doc', m:'Uploaded ' + when + ' · ' + Math.max(1, Math.round(file.size / 1024)) + ' KB', n:1 };
+      if (TEXTUAL.test(file.name) && file.size < 2000000) { try { node.text = await file.text(); } catch (_) {} }
+      list.push(node);
+    }
+    this.setState(st => ({ trees:{ ...st.trees }, sel:null }));
+  }
+  target(){
+    const { sec, sel, trail } = this.state;
+    if (sel) return this.findFile(sec, sel);
+    return trail.length ? this.findFile(sec, trail[trail.length - 1]) : null;
+  }
+  remove(){
+    const node = this.target();
+    if (!node || this.state.editing) return;
+    const name = node.folder || node.t;
+    const count = node.items ? (function c(l){ return l.reduce((s, n) => s + 1 + (n.items ? c(n.items) : 0), 0); })(node.items) : 0;
+    const msg = node.items
+      ? 'Delete the folder "' + name + '"' + (count ? ' and the ' + count + ' item' + (count === 1 ? '' : 's') + ' inside it' : '') + '?'
+      : 'Delete "' + name + '"?';
+    if (!window.confirm(msg)) return;
+    const { sec, trees, trail } = this.state;
+    const drop = l => { const k = l.findIndex(n => n.id === node.id); if (k >= 0) { l.splice(k, 1); return true; } return l.some(n => n.items && drop(n.items)); };
+    drop(trees[sec]);
+    const ti = trail.indexOf(node.id);
+    this.setState({ trees:{ ...trees }, sel:null, trail: ti >= 0 ? trail.slice(0, ti) : trail });
+  }
+  componentWillUnmount(){ window.removeEventListener('keydown', this.onKey); }
+  onKey = e => {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); this.remove(); }
+  };
+  switchClient(name){
+    if (name === this.state.client) return this.setState({ menu:false });
+    this.setState(st => {
+      const store = { ...st.store };
+      if (st.client) store[st.client] = { trees:st.trees, chats:st.chats };
+      const next = store[name] || { trees:prepTrees(), chats:{} };
+      return { store, client:name, trees:next.trees, chats:next.chats, trail:[], sel:null, query:'', editing:null, menu:false };
+    });
+  }
+  addClient(value){
+    const name = (value || '').trim();
+    if (!this.state.addingClient || this._addLock) return;
+    this._addLock = true; setTimeout(() => { this._addLock = false; }, 0);
+    if (!name) return this.setState({ addingClient:false });
+    if (this.state.clientList.some(c => c.toLowerCase() === name.toLowerCase())) { this.setState({ addingClient:false }); return this.switchClient(this.state.clientList.find(c => c.toLowerCase() === name.toLowerCase())); }
+    this.setState(st => ({ clientList:[...st.clientList, name], addingClient:false }), () => this.switchClient(name));
+  }
+  deleteClient(name){
+    if (this.state.clientList.length < 2) return;
+    if (!window.confirm('Delete the client "' + name + '" and all of its content?')) return;
+    const rest = this.state.clientList.filter(c => c !== name);
+    const store = { ...this.state.store }; delete store[name];
+    if (name === this.state.client) {
+      const next = store[rest[0]] || { trees:prepTrees(), chats:{} };
+      this.setState({ clientList:rest, store, client:rest[0], trees:next.trees, chats:next.chats, trail:[], sel:null, query:'', editing:null });
+    } else this.setState({ clientList:rest, store });
+  }
+  addFolder(){
+    const { sec, trail, trees } = this.state;
+    let list = trees[sec];
+    for (const id of trail){ const d = list.find(n => n.id === id); if (!d) break; list = d.items; }
+    const id = 'nf' + Date.now();
+    list.push({ id, folder:'Untitled folder', items:[] });
+    this.setState({ trees:{ ...trees }, editing:id, sel:null });
+  }
+  commitFolder(node, value){
+    if (this.state.editing !== node.id) return;
+    node.folder = (value || '').trim() || 'Untitled folder';
+    this.setState(st => {
+      const trail = this.pathTo(st.trees[st.sec], node.id) || st.trail;
+      return { editing:null, trail, trees:{ ...st.trees } };
+    });
+  }
+  pathTo(list, id, acc = []){
+    for (const n of list){
+      if (n.id === id) return [...acc, ...(n.folder ? [id] : [])];
+      if (n.items){ const r = this.pathTo(n.items, id, [...acc, n.id]); if (r) return r; }
+    }
+  }
+
+  renderVals(){
+    const { sec, trail, sel, mode, open, query, editing } = this.state;
+    const tree = this.state.trees[sec];
+    const s = S[sec];
+    const a = mode === 'design' ? DESIGN : s.agents[0];
+    const MODES = [
+      { id:'ask', label:'Ask', title:'Agent', send:'Ask', ph:`Ask about ${s.name.toLowerCase()}…` },
+      { id:'design', label:'Design opinion', title:'Design opinion', send:'Review', ph:'What should I review?' }
+    ];
+    const M = MODES.find(x => x.id === mode);
+    const thread = this.state.chats[sec + ':' + mode] || [];
+    const pads = { comfortable:'9px 10px', compact:'6px 10px' };
+    const hasNew = n => n.folder ? n.items.some(hasNew) : !!n.n;
+
+    const lists = [tree];
+    for (const id of trail){ const d = lists[lists.length - 1].find(n => n.id === id); if (!d) break; lists.push(d.items); }
+    const deepest = lists.length - 1;
+    const columns = lists.map((list, ci) => ({
+      empty: list.length === 0,
+      emptyText: ci === 0 ? 'No files yet. Upload files or create a folder to start ' + s.name.toLowerCase() + '.' : 'Empty folder',
+      items: this.sorted(list).map(n => {
+        const inTrail = n.folder && trail[ci] === n.id;
+        const active = n.folder ? inTrail && ci === trail.length - 1 && !sel : sel === n.id;
+        return {
+          title: n.folder || n.t, isFolder: !!n.folder, isFile: !n.folder, isNew: hasNew(n),
+          editing: editing === n.id, notEditing: editing !== n.id,
+          pressed: (active || inTrail) ? 'true' : 'false',
+          bg: active ? 'var(--ink)' : inTrail ? 'var(--panel)' : 'transparent',
+          fg: active ? 'var(--bg)' : 'var(--ink)',
+          onClick: () => n.folder
+            ? this.setState({ trail:[...trail.slice(0, ci), n.id], sel:null })
+            : this.setState({ trail:trail.slice(0, ci), sel:n.id }),
+          onKey: e => { if (e.key === 'Enter' || e.key === 'Escape'){ e.preventDefault(); this.commitFolder(n, e.target.value); } },
+          onBlur: e => this.commitFolder(n, e.target.value)
+        };
+      })
+    }));
+
+    const q = query.trim().toLowerCase();
+    const results = [];
+    if (q){
+      const walk = (list, names, ids) => this.sorted(list).forEach(n => {
+        const title = n.folder || n.t;
+        if (title.toLowerCase().includes(q)) results.push({
+          title, isFolder:!!n.folder, isFile:!n.folder, isNew:hasNew(n),
+          where: ['All files', ...names].join(' / '),
+          onClick: () => this.setState(n.folder ? { trail:[...ids, n.id], sel:null, query:'' } : { trail:ids, sel:n.id, query:'' })
+        });
+        if (n.items) walk(n.items, [...names, n.folder], [...ids, n.id]);
+      });
+      walk(tree, [], []);
+    }
+
+    const file = sel && this.findFile(sec, sel);
+    const notes = file && a.files[sel];
+
+    const W = this.state.panelW ?? 420;
+
+    return {
+      sections: Object.entries(S).map(([id, x]) => ({
+        name:x.name, color:x.color, current: sec === id ? 'page' : undefined,
+        border: sec === id ? 'var(--pill)' : 'transparent',
+        onClick: () => this.setState({ sec:id, trail:[], sel:null, query:'', editing:null })
+      })),
+      toggleTheme: () => {
+        const r = document.documentElement;
+        const dark = r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+        this.setState({ theme: dark ? 'light' : 'dark' });
+      },
+      secName:s.name, secSrc:s.src, hasSrc: false, secColor:s.color,
+      secLower: s.name.toLowerCase(),
+      query, onQuery: e => this.setState({ query:e.target.value }),
+      isSearching: !!q, notSearching: !q, results, noResults: !!q && results.length === 0,
+      sorts: [['name','Name'],['new','New']].map(([id, label]) => ({ label, pressed: this.state.sort === id ? 'true' : 'false',
+        bg: this.state.sort === id ? 'var(--ink)' : 'transparent', fg: this.state.sort === id ? 'var(--bg)' : 'var(--ink)',
+        onClick: () => this.setState({ sort:id }) })),
+      addFolder: () => this.addFolder(),
+      deleteSel: () => this.remove(),
+      noTarget: !this.target(), deleteOpacity: this.target() ? 1 : 0.4,
+      deleteTitle: this.target() ? 'Delete “' + (this.target().folder || this.target().t) + '” (Delete key)' : 'Select a file or folder to delete',
+      pickFiles: () => this.fileRef.current && this.fileRef.current.click(),
+      fileRef: this.fileRef, onUpload: e => this.upload(e),
+      hasObs: a.obs.length > 0 || !!a.themes, noObs: a.obs.length === 0 && !a.themes,
+      selectAll: e => e.target.select(),
+      colsRef: this.colsRef, columns, rowPad: pads[this.props.density] || pads.comfortable,
+      hasPreview: !!file, pvTitle: file ? file.t : '', pvMeta: file ? file.m : '', pvTag: file ? (TAG[file.type] || file.type) : '', pvNew: !!(file && file.n),
+      agentName:a.name,
+      panelW: W + 'px',
+      client: this.state.client,
+      isAdmin: (this.props.role ?? 'admin') === 'admin', notAdmin: (this.props.role ?? 'admin') !== 'admin',
+      menu: !!this.state.menu, clientBg: this.state.menu ? 'var(--hover)' : 'transparent', menuExpanded: this.state.menu ? 'true' : 'false',
+      menuOpen: () => this.setState({ menu:true }),
+      menuClose: () => { if (!this.state.addingClient) this.setState({ menu:false }); },
+      clients: this.state.clientList.map(name => ({
+        name, isCurrent: name === this.state.client, selected: name === this.state.client ? 'true' : 'false',
+        bg: name === this.state.client ? 'var(--panel)' : 'transparent',
+        onClick: () => this.switchClient(name),
+        onDelete: () => this.deleteClient(name)
+      })),
+      canDeleteClient: this.state.clientList.length > 1,
+      addingClient: this.state.addingClient, notAddingClient: !this.state.addingClient,
+      startAddClient: () => { this._addLock = false; this.setState({ addingClient:true }); },
+      onClientKey: e => { if (e.key === 'Enter') { e.preventDefault(); this.addClient(e.target.value); } else if (e.key === 'Escape') this.setState({ addingClient:false }); },
+      onClientBlur: e => { this.addClient(e.target.value); this.setState({ menu:false }); },
+      isOpen: open, closed: !open,
+      openPanel: () => this.setState({ open:true }),
+      closePanel: () => this.setState({ open:false }),
+      modeTitle: M.title, sendLabel: M.send,
+      modes: MODES.map(x => ({ label:x.label, checked: x.id === mode ? 'true' : 'false',
+        bg: x.id === mode ? 'var(--ink)' : 'transparent', fg: x.id === mode ? 'var(--bg)' : 'var(--ink)',
+        border: x.id === mode ? 'var(--ink)' : 'var(--line)', onClick: () => this.setState({ mode:x.id }) })),
+      startResize: e => {
+        e.preventDefault();
+        document.body.style.userSelect = 'none'; document.body.style.cursor = 'col-resize';
+        const move = ev => this.setState({ panelW: Math.max(320, Math.min(window.innerWidth * 0.85, window.innerWidth - ev.clientX)) });
+        const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); document.body.style.userSelect = ''; document.body.style.cursor = ''; };
+        window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+      },
+      hasMulti: s.agents.length > 1,
+      hasFocus: !!file, focusTitle: file ? file.t : '',
+      focusNotes: notes || (file ? [`Nothing for the ${(a.short || a.name).toLowerCase()} to flag in this file.`] : []),
+      obsHeading: file ? 'Across ' + s.name.toLowerCase() : 'What I\'m noticing',
+      hasThemes: !!a.themes,
+      themes: (a.themes || []).map(([name, n]) => ({ name, n, w: (n / 7 * 100) + '%' })),
+      obs: a.obs.map(o => ({ ...o, s:o.s || null, lk:o.lk || null, sevColor: o.s === 'High' ? 'var(--risk)' : 'var(--ink)' })),
+      askPlaceholder: M.ph,
+      onAsk: e => { e.preventDefault(); this.ask(); },
+      draft: this.state.draft, onDraft: e => this.setState({ draft:e.target.value }),
+      thinking: this.state.thinking,
+      hasThread: thread.length > 0 || this.state.thinking, noThread: !(thread.length > 0 || this.state.thinking),
+      thread: thread.map(m => ({ text:m.text, isUser:m.role === 'user', isAgent:m.role === 'assistant', who:M.title, color: m.error ? 'var(--risk)' : 'var(--ink)' })),
+      newChat: () => this.setState(st => ({ chats:{ ...st.chats, [sec + ':' + mode]:[] } })),
+      panelRef: this.panelRef
+    };
+  }
+}
+</script>
+</body>
+</html>
