@@ -170,3 +170,26 @@ export async function collectFiles(
   }
   return out;
 }
+
+/** True if `id` is the folder `rootId` or lives somewhere inside it. */
+export async function isWithinFolder(
+  accessToken: string,
+  id: string,
+  rootId: string
+): Promise<boolean> {
+  if (id === rootId) return true;
+  let current: string | undefined = id;
+  for (let depth = 0; current && depth < 25; depth++) {
+    const res = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${current}?fields=parents&supportsAllDrives=true`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    if (!res.ok) return false;
+    const data = (await res.json()) as { parents?: string[] };
+    const parent = data.parents?.[0];
+    if (!parent) return false;
+    if (parent === rootId) return true;
+    current = parent;
+  }
+  return false;
+}

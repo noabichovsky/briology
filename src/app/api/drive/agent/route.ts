@@ -1,10 +1,11 @@
 import { NextRequest } from "next/server";
 import { requireUser } from "@/lib/auth";
-import { getDriveRoot } from "@/lib/data";
+import { getDriveRoot, getClientMemberByEmail } from "@/lib/data";
 import {
   accessTokenFromRefresh,
   getFileText,
   collectFiles,
+  isWithinFolder,
   type DriveFile,
 } from "@/lib/googleDrive";
 
@@ -45,12 +46,33 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // For client users, restrict selection to their own folder subtree.
+  let allowedRoot: string | null = null;
+  if (user.role !== "admin") {
+    const member = await getClientMemberByEmail(user.email);
+    if (!member) {
+      return Response.json(
+        { error: "No workspace has been assigned to your account yet." },
+        { status: 403 }
+      );
+    }
+    allowedRoot = member.folderId;
+  }
+
   // Gather the text of the selected files (and files inside selected folders).
   let contextText = "";
   try {
     const accessToken = await accessTokenFromRefresh(root.refreshToken);
+    // Drop any selected item a client isn't allowed to see.
+    let allowed = selected;
+    if (allowedRoot) {
+      const checks = await Promise.all(
+        selected.map((s) => isWithinFolder(accessToken, s.id, allowedRoot!))
+      );
+      allowed = selected.filter((_, i) => checks[i]);
+    }
     const files: DriveFile[] = [];
-    for (const sel of selected) {
+    for (const sel of allowed) {
       if (sel.kind === "file") {
         files.push({
           id: sel.id,

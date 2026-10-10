@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
 import { env, getDb } from "@/lib/cloudflare";
-import { users, type User } from "@/db/schema";
+import { users, clientMembers, type User } from "@/db/schema";
 
 const SESSION_COOKIE = "briology_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
@@ -80,13 +80,15 @@ export async function requireAdmin(): Promise<User> {
 
 // ---- Admin seeding ---------------------------------------------------------
 
-/** Is this email on the Brio admin allow-list? */
+/** Admins are Brio staff: any @brioid.com email, or anyone in ADMIN_EMAILS. */
 export function isAdminEmail(email: string): boolean {
+  const e = email.toLowerCase().trim();
+  if (e.endsWith("@brioid.com")) return true;
   const list = (process.env.ADMIN_EMAILS ?? "")
     .split(",")
-    .map((e) => e.toLowerCase().trim())
+    .map((x) => x.toLowerCase().trim())
     .filter(Boolean);
-  return list.includes(email.toLowerCase().trim());
+  return list.includes(e);
 }
 
 /**
@@ -122,6 +124,28 @@ export async function resolveUserForEmail(
     return created;
   }
 
-  // Non-admin: only pre-provisioned client users may sign in.
-  return existing ?? null;
+  // Non-admin: allow invited client members (by exact email) to sign in.
+  const member = await db.query.clientMembers.findFirst({
+    where: eq(clientMembers.email, normalized),
+  });
+  if (member) {
+    if (existing) {
+      if (existing.role !== "client") {
+        await db
+          .update(users)
+          .set({ role: "client" })
+          .where(eq(users.id, existing.id));
+        return { ...existing, role: "client" };
+      }
+      return existing;
+    }
+    const [created] = await db
+      .insert(users)
+      .values({ email: normalized, role: "client", clientId: null })
+      .returning();
+    return created;
+  }
+
+  // Everyone else: no access until an admin invites them.
+  return null;
 }

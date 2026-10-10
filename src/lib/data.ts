@@ -9,6 +9,7 @@ import {
   agentNotes,
   driveLinks,
   driveRoot,
+  clientMembers,
   type User,
 } from "@/db/schema";
 import { SECTION_KEYS, fileTypeForName, type SectionKey } from "@/lib/sections";
@@ -481,4 +482,41 @@ export async function setDriveRoot(
   await db
     .insert(driveRoot)
     .values({ folderId, refreshToken, connectedBy: userId });
+}
+
+// ---- Client members (invited client users -> their one Drive folder) --------
+
+export async function getClientMemberByEmail(email: string) {
+  const db = getDb();
+  return (
+    (await db.query.clientMembers.findFirst({
+      where: eq(clientMembers.email, email.toLowerCase().trim()),
+    })) ?? null
+  );
+}
+
+export async function listClientMembers() {
+  const db = getDb();
+  return db.select().from(clientMembers).orderBy(asc(clientMembers.email));
+}
+
+export async function addClientMember(
+  email: string,
+  folderId: string,
+  folderName: string,
+  userId: string
+): Promise<void> {
+  const db = getDb();
+  const normalized = email.toLowerCase().trim();
+  await db.delete(clientMembers).where(eq(clientMembers.email, normalized));
+  await db
+    .insert(clientMembers)
+    .values({ email: normalized, folderId, folderName, invitedBy: userId });
+}
+
+export async function removeClientMember(email: string): Promise<void> {
+  const db = getDb();
+  await db
+    .delete(clientMembers)
+    .where(eq(clientMembers.email, email.toLowerCase().trim()));
 }

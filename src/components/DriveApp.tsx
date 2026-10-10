@@ -35,6 +35,15 @@ export default function DriveApp({
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [folderLink, setFolderLink] = useState("");
+  const [rootName, setRootName] = useState<string | null>(null);
+
+  // Admin: manage which client emails can see which folder.
+  const [showManage, setShowManage] = useState(false);
+  const [members, setMembers] = useState<
+    { email: string; folderId: string; folderName: string }[]
+  >([]);
+  const [newEmail, setNewEmail] = useState("");
+  const [newFolderId, setNewFolderId] = useState("");
 
   const [messages, setMessages] = useState<Msg[]>([]);
   const [draft, setDraft] = useState("");
@@ -51,14 +60,18 @@ export default function DriveApp({
       const data = (await res.json()) as {
         connected: boolean;
         folderId?: string;
+        rootFolderId?: string;
+        rootName?: string;
         items?: Item[];
         error?: string;
       };
       setConnected(data.connected);
+      setRootName(data.rootName ?? null);
       if (data.error) setTreeError(data.error);
-      if (data.connected && data.folderId) {
-        setRootFolderId(data.folderId);
-        setChildren({ [data.folderId]: data.items ?? [] });
+      const root = data.rootFolderId ?? data.folderId;
+      if (data.connected && root) {
+        setRootFolderId(root);
+        setChildren({ [root]: data.items ?? [] });
       }
     } catch {
       setTreeError("Could not reach the server.");
@@ -109,6 +122,50 @@ export default function DriveApp({
     window.location.href = withBase(
       `/api/drive/connect?folder=${encodeURIComponent(folderLink.trim())}`
     );
+  }
+
+  // --- Admin: manage client access ---
+  const loadMembers = useCallback(async () => {
+    const res = await fetch(withBase("/api/members"));
+    if (res.ok) {
+      const data = (await res.json()) as {
+        members: { email: string; folderId: string; folderName: string }[];
+      };
+      setMembers(data.members ?? []);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (showManage) loadMembers();
+  }, [showManage, loadMembers]);
+
+  async function addMember() {
+    const topFolders = (children[rootFolderId ?? ""] ?? []).filter(
+      (i) => i.kind === "folder"
+    );
+    const folder = topFolders.find((f) => f.id === newFolderId);
+    if (!newEmail.trim() || !folder) return;
+    const res = await fetch(withBase("/api/members"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: newEmail.trim(),
+        folderId: folder.id,
+        folderName: folder.name,
+      }),
+    });
+    if (res.ok) {
+      setNewEmail("");
+      setNewFolderId("");
+      loadMembers();
+    }
+  }
+
+  async function removeMember(email: string) {
+    await fetch(withBase(`/api/members?email=${encodeURIComponent(email)}`), {
+      method: "DELETE",
+    });
+    loadMembers();
   }
 
   // --- Agent ---
@@ -276,7 +333,7 @@ export default function DriveApp({
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "16px 14px", borderBottom: "1px solid var(--line)" }}>
             <span style={{ fontSize: 20, fontWeight: 500, letterSpacing: "-0.03em" }}>
-              {isAdmin ? "Briology" : "Workspace"}
+              {rootName ?? (isAdmin ? "Briology" : "Workspace")}
             </span>
             <button type="button" onClick={() => setSidebarOpen(false)} aria-label="Collapse sidebar" style={{ border: "1px solid var(--line)", borderRadius: 8, width: 30, height: 30, background: "transparent", cursor: "pointer" }}>
               ‹
@@ -310,6 +367,61 @@ export default function DriveApp({
             {!loading && connected && rootFolderId && renderLevel(rootFolderId, 0)}
             {treeError && <p style={{ padding: 12, color: "var(--risk)", fontSize: 13 }}>{treeError}</p>}
           </div>
+
+          {/* Admin: manage client access */}
+          {isAdmin && connected && (
+            <div style={{ borderTop: "1px solid var(--line)", padding: 10 }}>
+              <button
+                type="button"
+                onClick={() => setShowManage((v) => !v)}
+                style={{ width: "100%", textAlign: "left", border: 0, background: "transparent", cursor: "pointer", fontFamily: "'Geist Mono',monospace", fontSize: 11, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--muted)", padding: "4px 2px" }}
+              >
+                {showManage ? "▾ " : "▸ "}Manage client access
+              </button>
+              {showManage && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+                  <input
+                    placeholder="client email (any address)"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    style={{ height: 34, padding: "0 10px", background: "var(--input)", border: "1px solid var(--input-line)", borderRadius: 8, color: "var(--ink)", fontSize: 13, outline: "none" }}
+                  />
+                  <select
+                    value={newFolderId}
+                    onChange={(e) => setNewFolderId(e.target.value)}
+                    style={{ height: 34, padding: "0 8px", background: "var(--input)", border: "1px solid var(--input-line)", borderRadius: 8, color: "var(--ink)", fontSize: 13 }}
+                  >
+                    <option value="">Choose their folder…</option>
+                    {(children[rootFolderId ?? ""] ?? [])
+                      .filter((i) => i.kind === "folder")
+                      .map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name}
+                        </option>
+                      ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={addMember}
+                    disabled={!newEmail.trim() || !newFolderId}
+                    style={{ height: 34, border: "1px solid var(--ink)", borderRadius: 999, background: "var(--ink)", color: "var(--bg)", cursor: newEmail.trim() && newFolderId ? "pointer" : "default", fontSize: 13, opacity: newEmail.trim() && newFolderId ? 1 : 0.5 }}
+                  >
+                    Invite client
+                  </button>
+                  {members.map((m) => (
+                    <div key={m.email} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--muted)" }}>
+                      <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {m.email} → {m.folderName}
+                      </span>
+                      <button type="button" onClick={() => removeMember(m.email)} title="Remove" style={{ border: 0, background: "transparent", cursor: "pointer", color: "var(--muted)" }}>
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </aside>
       )}
 

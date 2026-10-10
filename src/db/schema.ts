@@ -135,6 +135,18 @@ export const messages = sqliteTable(
   (t) => [index("messages_chat_idx").on(t.chatId)]
 );
 
+/** Invited client users: an email mapped to the one Drive folder they may see. */
+export const clientMembers = sqliteTable("client_members", {
+  id: text("id").primaryKey().$defaultFn(newId),
+  email: text("email").notNull().unique(),
+  folderId: text("folder_id").notNull(),
+  folderName: text("folder_name").notNull(),
+  invitedBy: text("invited_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  createdAt: createdAt(),
+});
+
 /** The single app-wide "Briology" root Drive folder (connected once by an admin). */
 export const driveRoot = sqliteTable("drive_root", {
   id: text("id").primaryKey().$defaultFn(newId),
@@ -170,3 +182,4 @@ export type AgentNote = typeof agentNotes.$inferSelect;
 export type Chat = typeof chats.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type DriveLink = typeof driveLinks.$inferSelect;
+export type ClientMember = typeof clientMembers.$inferSelect;
