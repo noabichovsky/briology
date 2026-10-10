@@ -8,14 +8,18 @@ const TOKEN_URL = "https://oauth2.googleapis.com/token";
 // Full Drive scope so we can read existing folders AND write uploads back.
 const SCOPE = "https://www.googleapis.com/auth/drive";
 
+// Read credentials defensively — trim stray spaces/newlines from pasted values.
+const clientId = () => (process.env.GOOGLE_CLIENT_ID ?? "").trim();
+const clientSecret = () => (process.env.GOOGLE_CLIENT_SECRET ?? "").trim();
+
 export function driveConfigured(): boolean {
-  return !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+  return !!(clientId() && clientSecret());
 }
 
 /** The Google sign-in URL to start the connect flow. */
 export function buildAuthUrl(redirectUri: string, state: string): string {
   const params = new URLSearchParams({
-    client_id: process.env.GOOGLE_CLIENT_ID ?? "",
+    client_id: clientId(),
     redirect_uri: redirectUri,
     response_type: "code",
     scope: SCOPE,
@@ -37,8 +41,8 @@ export async function exchangeCode(
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       code,
-      client_id: process.env.GOOGLE_CLIENT_ID ?? "",
-      client_secret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+      client_id: clientId(),
+      client_secret: clientSecret(),
       redirect_uri: redirectUri,
       grant_type: "authorization_code",
     }),
@@ -55,8 +59,8 @@ export async function accessTokenFromRefresh(
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID ?? "",
-      client_secret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+      client_id: clientId(),
+      client_secret: clientSecret(),
       refresh_token: refreshToken,
       grant_type: "refresh_token",
     }),
