@@ -109,12 +109,9 @@ export default function DriveApp({
   }
 
   function toggleSelect(item: Item) {
-    setSelected((s) => {
-      const next = { ...s };
-      if (next[item.id]) delete next[item.id];
-      else next[item.id] = item;
-      return next;
-    });
+    // Single-select: clicking an item selects only it (clears any previous);
+    // clicking the same item again deselects it.
+    setSelected((s) => (s[item.id] ? {} : { [item.id]: item }));
   }
 
   function connect() {
