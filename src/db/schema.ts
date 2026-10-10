@@ -135,6 +135,21 @@ export const messages = sqliteTable(
   (t) => [index("messages_chat_idx").on(t.chatId)]
 );
 
+/** A client's connected Google Drive folder (OAuth refresh token + folder id). */
+export const driveLinks = sqliteTable("drive_links", {
+  id: text("id").primaryKey().$defaultFn(newId),
+  clientId: text("client_id")
+    .notNull()
+    .unique()
+    .references(() => clients.id, { onDelete: "cascade" }),
+  folderId: text("folder_id").notNull(),
+  refreshToken: text("refresh_token").notNull(),
+  connectedBy: text("connected_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  createdAt: createdAt(),
+});
+
 // Convenient TypeScript types inferred from the tables above.
 export type Client = typeof clients.$inferSelect;
 export type User = typeof users.$inferSelect;
@@ -143,3 +158,4 @@ export type Node = typeof nodes.$inferSelect;
 export type AgentNote = typeof agentNotes.$inferSelect;
 export type Chat = typeof chats.$inferSelect;
 export type Message = typeof messages.$inferSelect;
+export type DriveLink = typeof driveLinks.$inferSelect;

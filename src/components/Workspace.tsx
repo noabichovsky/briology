@@ -19,6 +19,7 @@ import {
   TrashIcon,
 } from "@/components/icons";
 import AgentPanel from "@/components/AgentPanel";
+import DrivePanel from "@/components/DrivePanel";
 
 type Sort = "name" | "new";
 
@@ -674,6 +675,10 @@ export default function Workspace({
             >
               {sectionDef.name}
             </h1>
+
+            {currentClient && (
+              <DrivePanel clientId={currentClient.id} isAdmin={isAdmin} />
+            )}
 
             {!currentClient ? (
               <p style={{ marginTop: 32, color: "var(--muted)", fontSize: 16 }}>

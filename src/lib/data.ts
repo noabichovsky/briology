@@ -7,6 +7,7 @@ import {
   chats,
   messages,
   agentNotes,
+  driveLinks,
   type User,
 } from "@/db/schema";
 import { SECTION_KEYS, fileTypeForName, type SectionKey } from "@/lib/sections";
@@ -422,4 +423,37 @@ export async function replaceAgentNotes(
     });
   }
   if (rows.length) await db.insert(agentNotes).values(rows);
+}
+
+// ---- Google Drive links ----------------------------------------------------
+
+export async function getDriveLink(clientId: string) {
+  const db = getDb();
+  return (
+    (await db.query.driveLinks.findFirst({
+      where: eq(driveLinks.clientId, clientId),
+    })) ?? null
+  );
+}
+
+/** Save (or replace) the Drive folder connection for a client. */
+export async function upsertDriveLink(
+  clientId: string,
+  folderId: string,
+  refreshToken: string,
+  userId: string
+): Promise<void> {
+  const db = getDb();
+  await db.delete(driveLinks).where(eq(driveLinks.clientId, clientId));
+  await db.insert(driveLinks).values({
+    clientId,
+    folderId,
+    refreshToken,
+    connectedBy: userId,
+  });
+}
+
+export async function deleteDriveLink(clientId: string): Promise<void> {
+  const db = getDb();
+  await db.delete(driveLinks).where(eq(driveLinks.clientId, clientId));
 }
