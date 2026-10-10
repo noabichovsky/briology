@@ -93,3 +93,17 @@ input::placeholder {
     animation: none !important;
   }
 }
+
+/* Brio wordmark: render it black in light mode, white in dark mode,
+   regardless of the colors baked into the SVG. */
+.brio-logo {
+  filter: brightness(0);
+}
+:root[data-theme="dark"] .brio-logo {
+  filter: brightness(0) invert(1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .brio-logo {
+    filter: brightness(0) invert(1);
+  }
+}

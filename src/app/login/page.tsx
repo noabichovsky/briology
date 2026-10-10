@@ -76,6 +76,7 @@ function LoginForm() {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
+          className="brio-logo"
           src={withBase("/brio-logo.svg")}
           alt="Brio"
           style={{ height: 34, width: "auto", alignSelf: "flex-start" }}
