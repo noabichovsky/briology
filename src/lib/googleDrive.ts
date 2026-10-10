@@ -124,3 +124,49 @@ export function parseFolderId(input: string): string {
   const m = input.match(/\/folders\/([a-zA-Z0-9_-]+)/);
   return m ? m[1] : input.trim();
 }
+
+const GOOGLE_DOC = "application/vnd.google-apps.document";
+const GOOGLE_SHEET = "application/vnd.google-apps.spreadsheet";
+const GOOGLE_SLIDES = "application/vnd.google-apps.presentation";
+const TEXTUAL_MIME = /^(text\/|application\/(json|xml|csv))/;
+
+/** Fetch a Drive file's text, when it's a readable type. Returns null otherwise. */
+export async function getFileText(
+  accessToken: string,
+  fileId: string,
+  mimeType: string
+): Promise<string | null> {
+  const auth = { Authorization: `Bearer ${accessToken}` };
+  let url: string;
+  if (mimeType === GOOGLE_DOC || mimeType === GOOGLE_SLIDES) {
+    url = `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=text/plain`;
+  } else if (mimeType === GOOGLE_SHEET) {
+    url = `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=text/csv`;
+  } else if (TEXTUAL_MIME.test(mimeType)) {
+    url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&supportsAllDrives=true`;
+  } else {
+    return null; // binary (PDF/Office/image) — not extracted in this version
+  }
+  const res = await fetch(url, { headers: auth });
+  if (!res.ok) return null;
+  return (await res.text()).slice(0, 20000);
+}
+
+/** Collect files (not folders) under a folder, recursively, up to `cap`. */
+export async function collectFiles(
+  accessToken: string,
+  folderId: string,
+  cap = 25
+): Promise<DriveFile[]> {
+  const out: DriveFile[] = [];
+  const stack = [folderId];
+  while (stack.length && out.length < cap) {
+    const current = stack.pop()!;
+    const children = await listFolder(accessToken, current);
+    for (const c of children) {
+      if (c.kind === "folder") stack.push(c.id);
+      else if (out.length < cap) out.push(c);
+    }
+  }
+  return out;
+}

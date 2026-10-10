@@ -1,4 +1,4 @@
-import { and, eq, inArray, asc } from "drizzle-orm";
+import { and, eq, inArray, asc, desc } from "drizzle-orm";
 import { getDb, env } from "@/lib/cloudflare";
 import {
   clients,
@@ -8,6 +8,7 @@ import {
   messages,
   agentNotes,
   driveLinks,
+  driveRoot,
   type User,
 } from "@/db/schema";
 import { SECTION_KEYS, fileTypeForName, type SectionKey } from "@/lib/sections";
@@ -456,4 +457,28 @@ export async function upsertDriveLink(
 export async function deleteDriveLink(clientId: string): Promise<void> {
   const db = getDb();
   await db.delete(driveLinks).where(eq(driveLinks.clientId, clientId));
+}
+
+// ---- Google Drive root (single app-wide "Briology" folder) ------------------
+
+export async function getDriveRoot() {
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(driveRoot)
+    .orderBy(desc(driveRoot.createdAt))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function setDriveRoot(
+  folderId: string,
+  refreshToken: string,
+  userId: string
+): Promise<void> {
+  const db = getDb();
+  await db.delete(driveRoot); // keep a single row
+  await db
+    .insert(driveRoot)
+    .values({ folderId, refreshToken, connectedBy: userId });
 }

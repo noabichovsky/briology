@@ -15,6 +15,13 @@
       "when": 1791629167201,
       "tag": "0001_busy_micromax",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791632559492,
+      "tag": "0002_tiresome_ezekiel",
+      "breakpoints": true
     }
   ]
 }

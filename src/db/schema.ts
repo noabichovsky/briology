@@ -135,6 +135,17 @@ export const messages = sqliteTable(
   (t) => [index("messages_chat_idx").on(t.chatId)]
 );
 
+/** The single app-wide "Briology" root Drive folder (connected once by an admin). */
+export const driveRoot = sqliteTable("drive_root", {
+  id: text("id").primaryKey().$defaultFn(newId),
+  folderId: text("folder_id").notNull(),
+  refreshToken: text("refresh_token").notNull(),
+  connectedBy: text("connected_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  createdAt: createdAt(),
+});
+
 /** A client's connected Google Drive folder (OAuth refresh token + folder id). */
 export const driveLinks = sqliteTable("drive_links", {
   id: text("id").primaryKey().$defaultFn(newId),
